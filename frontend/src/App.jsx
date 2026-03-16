@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Toaster, toast } from "react-hot-toast";
 import Dashboard from "./pages/Dashboard.jsx";
 import History from "./pages/History.jsx";
 import {
@@ -16,6 +17,42 @@ const DEFAULT_MAX_DISTANCE_METERS = 1000;
 const ATTENDANCE_PERMISSION_MESSAGE =
   "Please allow location and camera permissions to mark attendance.";
 const getTodayDateString = () => new Date().toISOString().split("T")[0];
+const infoToastStyle = {
+  border: "1px solid rgba(88, 214, 255, 0.2)",
+  background: "rgba(13, 27, 39, 0.95)",
+  color: "#dff6ff",
+  boxShadow: "0 18px 34px rgba(0, 0, 0, 0.24)",
+};
+const showErrorToast = (message, id = "app-error") => {
+  toast.error(message, { id });
+};
+const showSuccessToast = (message, id = "app-success") => {
+  toast.success(message, { id });
+};
+const showInfoToast = (message, id = "app-info") => {
+  toast(message, {
+    id,
+    icon: "i",
+    style: infoToastStyle,
+  });
+};
+const formatWorkingDuration = (startTime, endTime) => {
+  const durationMs = Math.max(endTime.getTime() - startTime.getTime(), 0);
+  const totalMinutes = Math.floor(durationMs / 60000);
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+  const minutes = String(totalMinutes % 60).padStart(2, "0");
+
+  return `${hours}h ${minutes}m`;
+};
+const upsertAttendanceRecord = (records, nextRecord) => {
+  const existingIndex = records.findIndex((entry) => entry._id === nextRecord._id);
+
+  if (existingIndex === -1) {
+    return [nextRecord, ...records];
+  }
+
+  return records.map((entry, index) => (index === existingIndex ? nextRecord : entry));
+};
 
 const calculateDistanceInMeters = (from, to) => {
   const toRadians = (value) => (value * Math.PI) / 180;
@@ -43,14 +80,8 @@ function App() {
   const [selfieBlob, setSelfieBlob] = useState(null);
   const [selfiePreview, setSelfiePreview] = useState("");
   const [history, setHistory] = useState([]);
-  const [cameraMessage, setCameraMessage] = useState("");
-  const [cameraError, setCameraError] = useState("");
-  const [locationMessage, setLocationMessage] = useState("");
-  const [locationError, setLocationError] = useState("");
-  const [attendanceMessage, setAttendanceMessage] = useState("");
-  const [attendanceError, setAttendanceError] = useState("");
   const [loadingAction, setLoadingAction] = useState("");
-  const [toast, setToast] = useState(null);
+  const [workingNow, setWorkingNow] = useState(() => Date.now());
   const [needsLocationPermission, setNeedsLocationPermission] = useState(false);
   const [needsCameraPermission, setNeedsCameraPermission] = useState(false);
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
@@ -58,12 +89,38 @@ function App() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
-  const toastTimeoutRef = useRef(null);
 
   useEffect(() => {
-    startCamera({ silent: true });
-    requestLocation({ silent: true });
-    loadShopInfo();
+    const initializePermissions = async () => {
+      const [locationPermission, cameraPermission] = await Promise.all([
+        getPermissionState("geolocation"),
+        getPermissionState("camera"),
+      ]);
+
+      if (locationPermission === "denied") {
+        setNeedsLocationPermission(true);
+        setLocationPermissionDenied(true);
+      } else if (locationPermission === "granted") {
+        requestLocation({ silent: true });
+      } else {
+        setNeedsLocationPermission(true);
+        setLocationPermissionDenied(false);
+      }
+
+      if (cameraPermission === "denied") {
+        setNeedsCameraPermission(true);
+        setCameraPermissionDenied(true);
+      } else if (cameraPermission === "granted") {
+        startCamera({ silent: true });
+      } else {
+        setNeedsCameraPermission(true);
+        setCameraPermissionDenied(false);
+      }
+
+      loadShopInfo();
+    };
+
+    initializePermissions();
 
     return () => {
       if (streamRef.current) {
@@ -72,14 +129,6 @@ function App() {
 
       if (selfiePreview) {
         URL.revokeObjectURL(selfiePreview);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (toastTimeoutRef.current) {
-        clearTimeout(toastTimeoutRef.current);
       }
     };
   }, []);
@@ -98,8 +147,31 @@ function App() {
       fetchHistory(form.userId.trim());
     } else {
       setHistory([]);
+      setForm((current) => ({ ...current, userName: "" }));
     }
   }, [form.userId]);
+
+  useEffect(() => {
+    if (!form.userId.trim() || !history.length) {
+      return;
+    }
+
+    const latestNamedRecord = history.find((entry) => entry.userName?.trim());
+    if (!latestNamedRecord?.userName) {
+      return;
+    }
+
+    setForm((current) => {
+      if (current.userName === latestNamedRecord.userName) {
+        return current;
+      }
+
+      return {
+        ...current,
+        userName: latestNamedRecord.userName,
+      };
+    });
+  }, [history, form.userId]);
 
   useEffect(() => {
     if (!videoRef.current || !streamRef.current || selfiePreview) {
@@ -111,6 +183,16 @@ function App() {
       setStreamReady(false);
     });
   }, [streamReady, selfiePreview]);
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setWorkingNow(Date.now());
+    }, 60000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, []);
 
   const attachStreamToVideo = async (stream) => {
     if (!videoRef.current) {
@@ -156,17 +238,6 @@ function App() {
         streamRef.current.getVideoTracks().some((track) => track.readyState === "live")
     );
 
-  const showToast = (kind, text) => {
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
-    }
-
-    setToast({ kind, text });
-    toastTimeoutRef.current = setTimeout(() => {
-      setToast(null);
-    }, 4000);
-  };
-
   const getPermissionState = async (name) => {
     if (!navigator.permissions?.query) {
       return "prompt";
@@ -186,8 +257,7 @@ function App() {
       setNeedsCameraPermission(true);
       setCameraPermissionDenied(true);
       if (!silent) {
-        showToast("error", "Camera access is unavailable. Please enable camera permission in your browser.");
-        setCameraError("Camera access is not supported on this device/browser.");
+        showErrorToast("Camera access is not supported on this device/browser.", "camera-permission");
       }
       return false;
     }
@@ -213,9 +283,6 @@ function App() {
       setStreamReady(true);
       setNeedsCameraPermission(false);
       setCameraPermissionDenied(false);
-      if (!silent) {
-        setCameraError("");
-      }
       return true;
     } catch (cameraError) {
       stopCamera();
@@ -224,8 +291,7 @@ function App() {
         cameraError?.name === "NotAllowedError" || cameraError?.name === "SecurityError"
       );
       if (!silent) {
-        showToast("error", "Camera permission was denied. Please enable camera access in your browser.");
-        setCameraError("Camera access was denied. A selfie is required for attendance.");
+        showErrorToast("Camera access denied. A selfie is required for attendance.", "camera-permission");
       }
       return false;
     }
@@ -236,8 +302,7 @@ function App() {
       setNeedsLocationPermission(true);
       setLocationPermissionDenied(true);
       if (!silent) {
-        showToast("error", "Location access is unavailable. Please enable location permission in your browser.");
-        setLocationError("Geolocation is not supported on this device.");
+        showErrorToast("Geolocation is not supported on this device.", "location-permission");
       }
       return false;
     }
@@ -252,8 +317,7 @@ function App() {
           setNeedsLocationPermission(false);
           setLocationPermissionDenied(false);
           if (!silent) {
-            setLocationMessage("GPS refreshed successfully.");
-            setLocationError("");
+            showSuccessToast("GPS refreshed successfully.", "location-permission");
           }
           resolve(true);
         },
@@ -261,8 +325,7 @@ function App() {
           setNeedsLocationPermission(true);
           setLocationPermissionDenied(geoError?.code === 1);
           if (!silent) {
-            showToast("error", "Location permission was denied. Please enable location access in your browser.");
-            setLocationError("Location access was denied. GPS is required for attendance.");
+            showErrorToast("Location access denied. GPS is required for attendance.", "location-permission");
           }
           resolve(false);
         },
@@ -278,7 +341,7 @@ function App() {
       const data = await fetchAttendanceHistory(userId);
       setHistory(data);
     } catch (historyError) {
-      setAttendanceError(historyError.message);
+      showErrorToast(historyError.message, "history");
     }
   };
 
@@ -298,22 +361,22 @@ function App() {
 
   const validateAttendanceBeforeSubmit = () => {
     if (!form.userId.trim() || !form.userName.trim()) {
-      setAttendanceError("Please enter both user ID and user name.");
+      showErrorToast("Please enter both user ID and user name.", "attendance-validation");
       return false;
     }
 
     if (!position) {
-      setAttendanceError("Current location is unavailable. Please allow GPS access.");
+      showErrorToast("Current location is unavailable. Please allow GPS access.", "attendance-validation");
       return false;
     }
 
     if (!isNearShop) {
-      setAttendanceError("You are not near the shop. Please move closer to check.");
+      showErrorToast("You are not near the shop. Please move closer to check.", "attendance-validation");
       return false;
     }
 
     if (!selfieBlob) {
-      setAttendanceError("Please capture a selfie first.");
+      showErrorToast("Please capture a selfie first.", "attendance-validation");
       return false;
     }
 
@@ -328,11 +391,11 @@ function App() {
     let hasCamera = hasActiveCameraStream();
 
     if (locationPermission === "denied" || !hasLocation) {
-      hasLocation = await requestLocation();
+      hasLocation = await requestLocation({ silent: true });
     }
 
     if (cameraPermission === "denied" || !hasCamera) {
-      hasCamera = await startCamera();
+      hasCamera = await startCamera({ silent: true });
     }
 
     if (!hasLocation) {
@@ -346,16 +409,57 @@ function App() {
     if (!hasLocation || !hasCamera) {
       setNeedsLocationPermission(true);
       setNeedsCameraPermission(true);
-      setAttendanceError(ATTENDANCE_PERMISSION_MESSAGE);
+      if (!hasLocation && !hasCamera) {
+        showErrorToast(ATTENDANCE_PERMISSION_MESSAGE, "permissions");
+      } else if (!hasLocation) {
+        showErrorToast("Location access denied. GPS is required for attendance.", "permissions");
+      } else {
+        showErrorToast("Camera access denied. A selfie is required for attendance.", "permissions");
+      }
     }
 
     return hasLocation && hasCamera;
   };
 
+  const requestAllPermissions = async () => {
+    const [locationPermission, cameraPermission] = await Promise.all([
+      getPermissionState("geolocation"),
+      getPermissionState("camera"),
+    ]);
+
+    const hasCamera = await startCamera({ silent: true });
+    const hasLocation = await requestLocation({ silent: true });
+
+    if (!hasLocation || !hasCamera) {
+      setNeedsLocationPermission(!hasLocation);
+      setNeedsCameraPermission(!hasCamera);
+
+      if (locationPermission === "denied" || cameraPermission === "denied") {
+        showErrorToast(
+          "Permission was blocked in the browser. Please allow camera and location in site settings.",
+          "permissions"
+        );
+      } else if (!hasLocation && !hasCamera) {
+        showErrorToast(ATTENDANCE_PERMISSION_MESSAGE, "permissions");
+      } else if (!hasLocation) {
+        showErrorToast("Location access denied. GPS is required for attendance.", "permissions");
+      } else {
+        showErrorToast("Camera access denied. A selfie is required for attendance.", "permissions");
+      }
+      return;
+    }
+
+    showSuccessToast("Camera and location permissions are ready.", "permissions");
+  };
+
   const captureSelfie = async () => {
-    const cameraStarted = await startCamera();
+    const cameraStarted = await startCamera({ silent: true });
     if (!cameraStarted || !hasActiveCameraStream()) {
-      setCameraError("Camera preview is not active yet. Please allow access and wait for the live preview.");
+      if (cameraPermissionDenied) {
+        showErrorToast("Camera access denied. A selfie is required for attendance.", "camera-preview");
+      } else {
+        showErrorToast("Camera preview is not active yet. Please allow access and wait for the live preview.", "camera-preview");
+      }
       return;
     }
 
@@ -364,7 +468,7 @@ function App() {
       !canvasRef.current ||
       videoRef.current.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
     ) {
-      setCameraError("Camera preview is not ready yet.");
+      showErrorToast("Camera preview is not ready yet.", "camera-preview");
       return;
     }
 
@@ -375,7 +479,7 @@ function App() {
 
     const context = canvas.getContext("2d");
     if (!context) {
-      setCameraError("Unable to access the camera canvas.");
+      showErrorToast("Unable to access the camera canvas.", "camera-preview");
       return;
     }
 
@@ -384,7 +488,7 @@ function App() {
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          setCameraError("Unable to capture selfie image.");
+          showErrorToast("Unable to capture selfie image.", "camera-preview");
           return;
         }
 
@@ -394,8 +498,7 @@ function App() {
 
         setSelfieBlob(blob);
         setSelfiePreview(URL.createObjectURL(blob));
-        setCameraMessage("Selfie captured. You can now continue.");
-        setCameraError("");
+        showInfoToast("Selfie captured. You can now continue.", "selfie-info");
       },
       "image/jpeg",
       0.9
@@ -409,8 +512,7 @@ function App() {
 
     setSelfieBlob(null);
     setSelfiePreview("");
-    setCameraMessage("You can capture a new selfie now.");
-    setCameraError("");
+    showInfoToast("You can capture a new selfie now.", "selfie-info");
     await startCamera();
   };
 
@@ -435,8 +537,6 @@ function App() {
     }
 
     setLoadingAction(action);
-    setAttendanceError("");
-    setAttendanceMessage("");
 
     try {
       const formData = new FormData();
@@ -449,17 +549,19 @@ function App() {
 
       const data = await submitAttendanceRequest(action, formData);
 
-      setAttendanceMessage(data.message);
+      showSuccessToast(data.message, "attendance-status");
+      if (data.attendance) {
+        setHistory((current) => upsertAttendanceRecord(current, data.attendance));
+      }
       setSelfieBlob(null);
       if (selfiePreview) {
         URL.revokeObjectURL(selfiePreview);
       }
       setSelfiePreview("");
-      setCameraMessage("");
       fetchHistory(form.userId.trim());
       requestLocation();
     } catch (attendanceError) {
-      setAttendanceError(attendanceError.message);
+      showErrorToast(attendanceError.message, "attendance-status");
     } finally {
       setLoadingAction("");
     }
@@ -470,9 +572,51 @@ function App() {
   const hasCheckedOutToday = history.some(
     (entry) => entry.date === getTodayDateString() && entry.checkOutTime
   );
+  const todayRecord = history.find((entry) => entry.date === getTodayDateString());
+  const activeCheckInTime =
+    todayRecord?.checkInTime && !todayRecord?.checkOutTime ? new Date(todayRecord.checkInTime) : null;
+  const formattedCheckInTime = activeCheckInTime
+    ? activeCheckInTime.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
+  const workingDuration = activeCheckInTime
+    ? formatWorkingDuration(activeCheckInTime, new Date(workingNow))
+    : "";
 
   return (
     <div className="app-shell">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            borderRadius: "16px",
+            padding: "14px 16px",
+            background: "rgba(12, 23, 34, 0.95)",
+            color: "#edf6fb",
+            border: "1px solid rgba(88, 214, 255, 0.16)",
+            boxShadow: "0 18px 34px rgba(0, 0, 0, 0.24)",
+          },
+          success: {
+            style: {
+              border: "1px solid rgba(35, 211, 177, 0.22)",
+              background: "rgba(10, 31, 32, 0.96)",
+              color: "#dcfff5",
+              boxShadow: "0 18px 34px rgba(0, 0, 0, 0.24)",
+            },
+          },
+          error: {
+            style: {
+              border: "1px solid rgba(255, 109, 126, 0.22)",
+              background: "rgba(45, 17, 24, 0.96)",
+              color: "#ffe1e7",
+              boxShadow: "0 18px 34px rgba(0, 0, 0, 0.24)",
+            },
+          },
+        }}
+      />
       <div className="background-glow background-glow-left" />
       <div className="background-glow background-glow-right" />
 
@@ -488,25 +632,22 @@ function App() {
           isNearShop={isNearShop}
           maxDistanceMeters={maxDistanceMeters}
           requestLocation={requestLocation}
-          startCamera={startCamera}
+          requestAllPermissions={requestAllPermissions}
           captureSelfie={captureSelfie}
           resetSelfie={resetSelfie}
           submitAttendance={submitAttendance}
           attendanceAction={attendanceAction}
           hasCheckedOutToday={hasCheckedOutToday}
+          formattedCheckInTime={formattedCheckInTime}
+          workingDuration={workingDuration}
           loadingAction={loadingAction}
-          cameraMessage={cameraMessage}
-          cameraError={cameraError}
-          locationMessage={locationMessage}
-          locationError={locationError}
-          attendanceMessage={attendanceMessage}
-          attendanceError={attendanceError}
-          toast={toast}
           videoRef={videoRef}
           setVideoElement={setVideoElement}
           canvasRef={canvasRef}
           streamReady={streamReady}
           selfiePreview={selfiePreview}
+          needsLocationPermission={needsLocationPermission}
+          needsCameraPermission={needsCameraPermission}
           locationPermissionDenied={locationPermissionDenied}
           cameraPermissionDenied={cameraPermissionDenied}
         />

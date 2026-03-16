@@ -1,4 +1,4 @@
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 
 const createLabelMarker = ({ label, toneClass }) =>
@@ -29,6 +29,16 @@ const mapOptions = {
   zoomControl: true,
 };
 
+function MapViewportUpdater({ center }) {
+  const map = useMap();
+
+  map.setView([center.latitude, center.longitude], map.getZoom(), {
+    animate: false,
+  });
+
+  return null;
+}
+
 function LocationMap({ shopLocation, userLocation }) {
   const center = userLocation || shopLocation;
 
@@ -39,6 +49,8 @@ function LocationMap({ shopLocation, userLocation }) {
       scrollWheelZoom={false}
       {...mapOptions}
     >
+      <MapViewportUpdater center={center} />
+
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

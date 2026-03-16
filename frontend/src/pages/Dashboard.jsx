@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import Camera from "../components/Camera.jsx";
 import LocationMap from "../components/LocationMap.jsx";
 
@@ -10,29 +11,33 @@ function Dashboard({
   isNearShop,
   maxDistanceMeters,
   requestLocation,
-  startCamera,
+  requestAllPermissions,
   captureSelfie,
   resetSelfie,
   submitAttendance,
   attendanceAction,
   hasCheckedOutToday,
+  formattedCheckInTime,
+  workingDuration,
   loadingAction,
-  cameraMessage,
-  cameraError,
-  locationMessage,
-  locationError,
-  attendanceMessage,
-  attendanceError,
-  toast,
   videoRef,
   setVideoElement,
   canvasRef,
   streamReady,
   selfiePreview,
+  needsLocationPermission,
+  needsCameraPermission,
   locationPermissionDenied,
   cameraPermissionDenied,
 }) {
-  const showPermissionHelp = locationPermissionDenied || cameraPermissionDenied;
+  const userNameInputRef = useRef(null);
+  const showPermissionHelp =
+    needsLocationPermission ||
+    needsCameraPermission ||
+    locationPermissionDenied ||
+    cameraPermissionDenied;
+  const showWorkingSummary =
+    attendanceAction === "checkout" && formattedCheckInTime && workingDuration && !hasCheckedOutToday;
   const attendanceButtonText =
     loadingAction === "checkin"
       ? "Checking In..."
@@ -46,32 +51,39 @@ function Dashboard({
 
   return (
     <section className="hero-card">
-      {toast ? <div className={`toast-banner toast-${toast.kind}`}>{toast.text}</div> : null}
-
-      {showPermissionHelp ? (
-        <div className="dashboard-permission-help">
-          <span className="permission-inline-text">Did you allow permissions?</span>
-          <div className="permission-tooltip-wrap">
-            <button type="button" className="button secondary permission-help-button">
-              How to enable
-            </button>
-            <div className="permission-tooltip-card">
-              <img
-                src="/permission.gif"
-                alt="Tutorial showing how to allow camera and location permissions"
-                className="permission-gif"
-              />
-            </div>
-          </div>
+      <div className="hero-topbar">
+        <div className="brand-mark" aria-label="Attendify">
+          <span className="brand-icon" aria-hidden="true">
+            <span className="brand-pin-head" />
+            <span className="brand-pin-tail" />
+            <span className="brand-check" />
+          </span>
+          <span className="brand-copy">
+            <span className="brand-text">Attendify</span>
+            <span className="brand-underline" />
+          </span>
         </div>
-      ) : null}
+        {showPermissionHelp ? (
+          <div className="dashboard-permission-help">
+            <span className="permission-inline-text">Did you allow permissions?</span>
+            <button type="button" className="button primary permission-allow-button" onClick={requestAllPermissions}>
+              Ask Permission
+            </button>
+          </div>
+        ) : null}
+      </div>
 
-      <div className="eyebrow">GPS Verified Attendance</div>
-      <h1>Check in only when you are really at the shop.</h1>
-      <p>
-        This dashboard combines live location validation, selfie capture, and
-        attendance history in one mobile-friendly flow.
-      </p>
+      <div className="hero-content">
+        <div className="eyebrow">GPS VERIFIED ATTENDANCE</div>
+        <div className="hero-heading-group">
+          <div className="hero-title-row">
+            <h1>
+              Welcome to <span className="hero-accent">Attendify</span>
+            </h1>
+          </div>
+          <h2 className="hero-subheading">Secure GPS-Verified Attendance System</h2>
+        </div>
+      </div>
 
       <div className="dashboard-symmetric-grid">
         <div className="dashboard-grid-cell field-cell user-id-cell">
@@ -79,20 +91,29 @@ function Dashboard({
           <input
             value={form.userId}
             onChange={(event) => onFormChange("userId", event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                userNameInputRef.current?.focus();
+              }
+            }}
             placeholder="EMP001"
           />
         </div>
 
-        <div className="dashboard-grid-cell status-card shop-location-cell">
-          <span>Shop Location</span>
-          <strong>
-            {shopLocation.latitude}, {shopLocation.longitude}
-          </strong>
+        <div className="dashboard-grid-cell metric-card shop-location-cell">
+          <div className="metric-content">
+            <span className="metric-label">Shop Location</span>
+            <strong className="metric-value">
+              {shopLocation.latitude}, {shopLocation.longitude}
+            </strong>
+          </div>
         </div>
 
         <div className="dashboard-grid-cell field-cell user-name-cell">
           <label>User Name</label>
           <input
+            ref={userNameInputRef}
             value={form.userName}
             onChange={(event) => onFormChange("userName", event.target.value)}
             placeholder="Enter your name"
@@ -100,15 +121,21 @@ function Dashboard({
         </div>
 
         <div
-          className={`dashboard-grid-cell status-card distance-cell ${isNearShop ? "status-ok" : "status-warning"}`}
+          className={`dashboard-grid-cell metric-card distance-cell ${isNearShop ? "status-ok" : "status-warning"}`}
         >
-          <span>Distance from Shop</span>
-          <strong>{distance !== null ? `${distance} m / ${maxDistanceMeters} m` : "Locating..."}</strong>
+          <div className="metric-content">
+            <div className="metric-heading-row">
+              <span className="metric-label">Distance from Shop</span>
+              <span className={`metric-status-dot ${isNearShop ? "in-range" : "out-range"}`} />
+            </div>
+            <strong className="metric-value">
+              {distance !== null ? `${distance} m / ${maxDistanceMeters} m` : "Locating..."}
+            </strong>
+          </div>
         </div>
 
         <div className="dashboard-grid-cell media-cell camera-media-cell">
           <Camera
-            startCamera={startCamera}
             setVideoElement={setVideoElement}
             canvasRef={canvasRef}
             streamReady={streamReady}
@@ -124,45 +151,53 @@ function Dashboard({
         </div>
 
         <div className="dashboard-grid-cell action-cell camera-action-cell">
-          <button
-            type="button"
-            className={`button secondary section-action-button ${selfiePreview ? "camera-retake-button" : "camera-capture-button"}`}
-            onClick={selfiePreview ? resetSelfie : captureSelfie}
-          >
-            {selfiePreview ? "Retake Selfie" : "Capture Selfie"}
-          </button>
-
-          {cameraMessage ? <p className="feedback success section-feedback">{cameraMessage}</p> : null}
-          {cameraError ? <p className="feedback error section-feedback">{cameraError}</p> : null}
+          {!hasCheckedOutToday ? (
+            <button
+              type="button"
+              className={`button secondary section-action-button ${selfiePreview ? "camera-retake-button" : "camera-capture-button"}`}
+              onClick={selfiePreview ? resetSelfie : captureSelfie}
+            >
+              {selfiePreview ? "Retake Selfie" : "Capture Selfie"}
+            </button>
+          ) : null}
         </div>
 
         <div className="dashboard-grid-cell action-cell map-action-cell">
-          <button
-            type="button"
-            className="button secondary section-action-button location-refresh-button"
-            onClick={requestLocation}
-          >
-            Refresh GPS
-          </button>
-
-          {locationMessage ? <p className="feedback success section-feedback">{locationMessage}</p> : null}
-          {locationError ? <p className="feedback error section-feedback">{locationError}</p> : null}
+          {!hasCheckedOutToday ? (
+            <button
+              type="button"
+              className="button secondary section-action-button location-refresh-button"
+              onClick={requestLocation}
+            >
+              Refresh GPS
+            </button>
+          ) : null}
         </div>
       </div>
 
       <div className="attendance-action-row">
+        {showWorkingSummary ? (
+          <div className="working-summary-card">
+            <div className="working-summary-row">
+              <span>Check-In Time</span>
+              <strong>{formattedCheckInTime}</strong>
+            </div>
+            <div className="working-summary-row">
+              <span>Working Time</span>
+              <strong>{workingDuration}</strong>
+            </div>
+          </div>
+        ) : null}
+
         <button
           type="button"
           className={`button ${attendanceAction === "checkout" ? "accent" : "primary"} attendance-button`}
           onClick={() => submitAttendance(attendanceAction)}
           disabled={Boolean(loadingAction) || hasCheckedOutToday}
         >
-          {attendanceButtonText}
+          {hasCheckedOutToday ? "Attendance completed for today" : attendanceButtonText}
         </button>
       </div>
-
-      {attendanceMessage ? <p className="feedback success">{attendanceMessage}</p> : null}
-      {attendanceError ? <p className="feedback error">{attendanceError}</p> : null}
     </section>
   );
 }

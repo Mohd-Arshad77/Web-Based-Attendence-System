@@ -1,23 +1,10 @@
-import { useEffect } from "react";
-
 function Camera({
-  startCamera,
   setVideoElement,
   canvasRef,
   streamReady,
   selfiePreview,
   cameraPermissionDenied,
 }) {
-  useEffect(() => {
-    startCamera({ silent: true });
-  }, []);
-
-  useEffect(() => {
-    if (!selfiePreview) {
-      startCamera({ silent: true });
-    }
-  }, [selfiePreview]);
-
   return (
     <div className="camera-section">
       <div className="camera-frame">
@@ -36,6 +23,7 @@ function Camera({
                 event.currentTarget.play().catch(() => {});
               }}
             />
+            {streamReady ? <span className="camera-scan-line" aria-hidden="true" /> : null}
             {!streamReady ? <div className="camera-overlay">Enable camera access</div> : null}
           </>
         )}
