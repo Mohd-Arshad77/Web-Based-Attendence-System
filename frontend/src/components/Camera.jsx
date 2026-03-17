@@ -24,7 +24,7 @@ function Camera({
               }}
             />
             {streamReady ? <span className="camera-scan-line" aria-hidden="true" /> : null}
-            {!streamReady ? <div className="camera-overlay">Enable camera access</div> : null}
+            {!streamReady ? <div className="camera-overlay">Please allow camera access</div> : null}
           </>
         )}
       </div>

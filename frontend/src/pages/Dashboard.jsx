@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Camera from "../components/Camera.jsx";
 import LocationMap from "../components/LocationMap.jsx";
 
@@ -30,6 +30,9 @@ function Dashboard({
   cameraPermissionDenied,
 }) {
   const userNameInputRef = useRef(null);
+  const [isSmallScreen, setIsSmallScreen] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 900px)").matches : false
+  );
   const userAgent =
     typeof navigator !== "undefined" ? navigator.userAgent || navigator.vendor || "" : "";
   const isAndroid = /Android/i.test(userAgent);
@@ -40,12 +43,12 @@ function Dashboard({
     locationPermissionDenied ||
     cameraPermissionDenied;
   const locationHelpMessage =
-    needsLocationPermission || locationPermissionDenied
+    isSmallScreen && (needsLocationPermission || locationPermissionDenied)
       ? isAndroid
-        ? "Location is off or blocked on this Android device. Turn it on in Android Settings, then tap Refresh GPS."
+        ? "Location is off. Turn it on in Android Settings."
         : isIPhone
-          ? "Location is off or blocked on this iPhone. Enable it in Settings, then tap Refresh GPS."
-          : "Location is off or blocked for this device or browser. Enable location access, then tap Refresh GPS."
+          ? "Location is off. Enable it in iPhone Settings."
+          : "Location is off. Enable location access."
       : "";
   const showWorkingSummary =
     attendanceAction === "checkout" && formattedCheckInTime && workingDuration && !hasCheckedOutToday;
@@ -59,6 +62,24 @@ function Dashboard({
           : attendanceAction === "checkout"
             ? "Check Out"
             : "Check In";
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 900px)");
+    const handleScreenChange = (event) => {
+      setIsSmallScreen(event.matches);
+    };
+
+    setIsSmallScreen(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleScreenChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleScreenChange);
+    };
+  }, []);
 
   return (
     <section className="hero-card">
@@ -74,15 +95,25 @@ function Dashboard({
             <span className="brand-underline" />
           </span>
         </div>
-        {showPermissionHelp ? (
+      </div>
+
+      {!isSmallScreen && showPermissionHelp ? (
+        <div className="hero-status-strip">
           <div className="dashboard-permission-help">
-            <span className="permission-inline-text">Did you allow permissions?</span>
+            <span className="permission-inline-text">Permission required to continue</span>
             <button type="button" className="button primary permission-allow-button" onClick={requestAllPermissions}>
               Ask Permission
             </button>
           </div>
-        ) : null}
-      </div>
+
+          {locationHelpMessage ? (
+            <div className="permission-inline-note" role="status">
+              <strong>Location:</strong>
+              <span>{locationHelpMessage}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="hero-content">
         <div className="eyebrow">GPS VERIFIED ATTENDANCE</div>
@@ -96,10 +127,21 @@ function Dashboard({
         </div>
       </div>
 
-      {locationHelpMessage ? (
-        <div className="permission-message-card" role="status">
-          <strong>Location access needed</strong>
-          <span>{locationHelpMessage}</span>
+      {isSmallScreen && showPermissionHelp ? (
+        <div className="hero-status-strip">
+          <div className="dashboard-permission-help">
+            <span className="permission-inline-text">Permission required to continue</span>
+            <button type="button" className="button primary permission-allow-button" onClick={requestAllPermissions}>
+              Ask Permission
+            </button>
+          </div>
+
+          {locationHelpMessage ? (
+            <div className="permission-inline-note" role="status">
+              <strong>Location:</strong>
+              <span>{locationHelpMessage}</span>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
