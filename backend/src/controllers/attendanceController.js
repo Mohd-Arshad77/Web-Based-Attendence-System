@@ -4,6 +4,22 @@ import { calculateDistanceInMeters } from "../utils/distance.js";
 
 const buildImagePath = (file) => (file ? `/uploads/${file.filename}` : null);
 
+const getBaseUrl = (request) => `${request.protocol}://${request.get("host")}`;
+
+const buildImageUrl = (request, imagePath) =>
+  imagePath ? `${getBaseUrl(request)}${imagePath}` : null;
+
+const serializeAttendance = (request, attendance) => {
+  const attendanceObject =
+    typeof attendance.toObject === "function" ? attendance.toObject() : attendance;
+
+  return {
+    ...attendanceObject,
+    checkInImagePath: buildImageUrl(request, attendanceObject.checkInImagePath),
+    checkOutImagePath: buildImageUrl(request, attendanceObject.checkOutImagePath),
+  };
+};
+
 const normalizeCoordinates = (latitude, longitude) => {
   const parsedLatitude = Number(latitude);
   const parsedLongitude = Number(longitude);
@@ -94,7 +110,7 @@ export const checkIn = async (request, response, next) => {
     return response.status(201).json({
       message: "Check-in successful.",
       distanceFromShop: Number(distanceFromShop.toFixed(2)),
-      attendance,
+      attendance: serializeAttendance(request, attendance),
     });
   } catch (error) {
     next(error);
@@ -131,7 +147,7 @@ export const checkOut = async (request, response, next) => {
     return response.status(200).json({
       message: "Check-out successful.",
       distanceFromShop: Number(distanceFromShop.toFixed(2)),
-      attendance,
+      attendance: serializeAttendance(request, attendance),
     });
   } catch (error) {
     next(error);
@@ -147,7 +163,9 @@ export const getAttendanceHistory = async (request, response, next) => {
       createdAt: -1,
     });
 
-    return response.status(200).json(attendanceHistory);
+    return response
+      .status(200)
+      .json(attendanceHistory.map((attendance) => serializeAttendance(request, attendance)));
   } catch (error) {
     next(error);
   }

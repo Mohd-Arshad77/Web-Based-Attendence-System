@@ -1,37 +1,30 @@
+import axios from "axios";
+
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+});
 
 export const fetchAttendanceHistory = async (userId) => {
-  const response = await fetch(`${API_BASE_URL}/attendance/user/${userId}`);
-
-  if (!response.ok) {
-    throw new Error("Unable to load attendance history.");
-  }
-
-  return response.json();
+  const { data } = await api.get(`/attendance/user/${userId}`);
+  return data;
 };
 
 export const fetchShopInfo = async () => {
-  const response = await fetch(`${API_BASE_URL}/attendance/shop-info`);
-
-  if (!response.ok) {
-    throw new Error("Unable to load shop information.");
-  }
-
-  return response.json();
+  const { data } = await api.get("/attendance/shop-info");
+  return data;
 };
 
 export const submitAttendanceRequest = async (action, formData) => {
-  const response = await fetch(`${API_BASE_URL}/attendance/${action}`, {
-    method: "POST",
-    body: formData,
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Attendance request failed.");
+  try {
+    const { data } = await api.post(`/attendance/${action}`, formData);
+    return data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || "Attendance request failed."
+    );
   }
-
-  return data;
 };

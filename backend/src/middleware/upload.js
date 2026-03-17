@@ -1,8 +1,7 @@
 import fs from "fs";
 import path from "path";
 import multer from "multer";
-
-const uploadsDirectory = path.resolve("uploads");
+import { uploadsDirectory } from "../config/paths.js";
 
 if (!fs.existsSync(uploadsDirectory)) {
   fs.mkdirSync(uploadsDirectory, { recursive: true });
