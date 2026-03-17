@@ -54,10 +54,9 @@ cd Web-based Attendance System
 ```bash
 cd backend
 npm install
-copy .env.example .env
 ```
 
-Update `.env` with your MongoDB connection string if needed.
+Update `backend/.env` with your MongoDB connection string if needed.
 
 Run backend:
 
@@ -144,3 +143,9 @@ See [docs/database-schema.md](/d:/Web-based%20Attendance%20System/docs/database-
 - Add screenshots or a short demo video before submission.
 - If using MongoDB Atlas, whitelist your IP and update `MONGODB_URI`.
 - Uploaded selfie images are stored inside `backend/uploads/`.
+
+## Render Deployment Notes
+
+- Set `MONGODB_URI` in Render to your MongoDB Atlas connection string.
+- Set `CLIENT_URL` in Render to your deployed frontend URL so CORS allows browser requests.
+- Keep `backend/.env` local only; do not commit Atlas credentials to GitHub.
