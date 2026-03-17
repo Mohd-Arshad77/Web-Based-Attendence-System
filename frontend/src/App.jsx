@@ -204,19 +204,6 @@ function App() {
     return true;
   };
 
-  const setVideoElement = (element) => {
-    videoRef.current = element;
-
-    if (!element || !streamRef.current || selfiePreview) {
-      return;
-    }
-
-    element.srcObject = streamRef.current;
-    element.play().catch(() => {
-      setStreamReady(false);
-    });
-  };
-
   const stopCamera = () => {
     if (!streamRef.current) {
       return;
@@ -642,7 +629,6 @@ function App() {
           workingDuration={workingDuration}
           loadingAction={loadingAction}
           videoRef={videoRef}
-          setVideoElement={setVideoElement}
           canvasRef={canvasRef}
           streamReady={streamReady}
           selfiePreview={selfiePreview}

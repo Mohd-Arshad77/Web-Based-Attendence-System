@@ -21,7 +21,6 @@ function Dashboard({
   workingDuration,
   loadingAction,
   videoRef,
-  setVideoElement,
   canvasRef,
   streamReady,
   selfiePreview,
@@ -136,7 +135,7 @@ function Dashboard({
 
         <div className="dashboard-grid-cell media-cell camera-media-cell">
           <Camera
-            setVideoElement={setVideoElement}
+            videoRef={videoRef}
             canvasRef={canvasRef}
             streamReady={streamReady}
             selfiePreview={selfiePreview}

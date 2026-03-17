@@ -1,5 +1,5 @@
 function Camera({
-  setVideoElement,
+  videoRef,
   canvasRef,
   streamReady,
   selfiePreview,
@@ -15,7 +15,7 @@ function Camera({
         ) : (
           <>
             <video
-              ref={setVideoElement}
+              ref={videoRef}
               autoPlay
               playsInline
               muted
