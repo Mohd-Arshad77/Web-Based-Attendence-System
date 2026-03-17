@@ -30,11 +30,23 @@ function Dashboard({
   cameraPermissionDenied,
 }) {
   const userNameInputRef = useRef(null);
+  const userAgent =
+    typeof navigator !== "undefined" ? navigator.userAgent || navigator.vendor || "" : "";
+  const isAndroid = /Android/i.test(userAgent);
+  const isIPhone = /iPhone|iPad|iPod/i.test(userAgent);
   const showPermissionHelp =
     needsLocationPermission ||
     needsCameraPermission ||
     locationPermissionDenied ||
     cameraPermissionDenied;
+  const locationHelpMessage =
+    needsLocationPermission || locationPermissionDenied
+      ? isAndroid
+        ? "Location is off or blocked on this Android device. Turn it on in Android Settings, then tap Refresh GPS."
+        : isIPhone
+          ? "Location is off or blocked on this iPhone. Enable it in Settings, then tap Refresh GPS."
+          : "Location is off or blocked for this device or browser. Enable location access, then tap Refresh GPS."
+      : "";
   const showWorkingSummary =
     attendanceAction === "checkout" && formattedCheckInTime && workingDuration && !hasCheckedOutToday;
   const attendanceButtonText =
@@ -83,6 +95,13 @@ function Dashboard({
           <h2 className="hero-subheading">Secure GPS-Verified Attendance System</h2>
         </div>
       </div>
+
+      {locationHelpMessage ? (
+        <div className="permission-message-card" role="status">
+          <strong>Location access needed</strong>
+          <span>{locationHelpMessage}</span>
+        </div>
+      ) : null}
 
       <div className="dashboard-symmetric-grid">
         <div className="dashboard-grid-cell field-cell user-id-cell">
