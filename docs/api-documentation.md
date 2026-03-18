@@ -1,6 +1,6 @@
 # API Documentation
 
-Base URL: `http://localhost:5000/api`
+Base URL: `https://web-based-attendence-system.onrender.com/api`
 
 ## Health Check
 
@@ -38,12 +38,12 @@ Content type: `multipart/form-data`
 
 Fields:
 
-- `userId`
-- `userName`
-- `latitude`
-- `longitude`
-- `timestamp`
-- `image`
+* `userId`
+* `userName`
+* `latitude`
+* `longitude`
+* `timestamp`
+* `image`
 
 Success response:
 
@@ -71,12 +71,12 @@ Content type: `multipart/form-data`
 
 Fields:
 
-- `userId`
-- `userName`
-- `latitude`
-- `longitude`
-- `timestamp`
-- `image`
+* `userId`
+* `userName`
+* `latitude`
+* `longitude`
+* `timestamp`
+* `image`
 
 Success response:
 

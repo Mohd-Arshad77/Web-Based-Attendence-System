@@ -2,78 +2,95 @@
 
 A MERN-based attendance system that allows employees to check in and check out only when they are physically near the shop location. The app uses browser GPS, device camera selfie capture, and backend distance validation.
 
-## Features
+---
 
-- Check-in and check-out flow
-- Browser geolocation permission using `navigator.geolocation.getCurrentPosition()`
-- Selfie capture using `navigator.mediaDevices.getUserMedia()`
-- Server-side distance verification within 100 meters of the shop
-- Attendance history by employee
-- Daily duplicate check-in prevention
-- Responsive React UI
+##  Live Links
 
-## Shop Validation Settings
+* Frontend: https://web-based-attendence-system-xen6.vercel.app/
+* Backend: https://web-based-attendence-system.onrender.com
 
-- Latitude: `9.9312`
-- Longitude: `76.2673`
-- Max allowed distance: `100 meters`
+---
 
-## Tech Stack
+##  Features
 
-- Frontend: React + Vite
-- Backend: Node.js + Express
-- Database: MongoDB
-- File Uploads: Multer
+* Check-in and check-out flow
+* Browser geolocation using `navigator.geolocation.getCurrentPosition()`
+* Selfie capture using `navigator.mediaDevices.getUserMedia()`
+* Server-side distance verification within 100 meters
+* Attendance history by employee
+* Daily duplicate check-in prevention
+* Responsive React UI
 
-## Project Structure
+---
 
-```text
+##  Shop Validation Settings
+
+* Latitude: `9.9312`
+* Longitude: `76.2673`
+* Max allowed distance: `100 meters`
+
+---
+
+## 🛠️ Tech Stack
+
+* Frontend: React + Vite
+* Backend: Node.js + Express
+* Database: MongoDB
+* File Uploads: Multer
+
+---
+
+## 📂 Project Structure
+
 backend/
-  src/
-    config/
-    controllers/
-    middleware/
-    models/
-    routes/
-    utils/
-frontend/
-  src/
-```
+src/
+config/
+controllers/
+middleware/
+models/
+routes/
+utils/
 
-## Setup Instructions
+frontend/
+src/
+
+---
+
+## ⚙️ Setup Instructions
 
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repo-url>
-cd Web-based Attendance System
+git clone https://github.com/Mohd-Arshad77/Web-Based-Attendence-System.git
+cd Web-Based-Attendence-System
 ```
+
+---
 
 ### 2. Backend setup
 
 ```bash
 cd backend
 npm install
-```
-
-Update `backend/.env` with your MongoDB connection string if needed.
-
-Run backend:
-
-```bash
 npm run dev
 ```
 
-Backend runs on `http://localhost:5000`.
+Backend runs on:
+http://localhost:5000
+
+---
 
 ### 3. Frontend setup
-
-Open a new terminal:
 
 ```bash
 cd frontend
 npm install
-copy .env.example .env
+```
+
+Create `.env` file:
+
+```env
+VITE_API_URL=http://localhost:5000/api
 ```
 
 Run frontend:
@@ -82,70 +99,59 @@ Run frontend:
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`.
+Frontend runs on:
+http://localhost:5173
 
-## Git Safety Notes
+---
 
-- Keep `frontend/.env`, `backend/.env`, `node_modules`, `dist`, and `backend/uploads` out of Git.
-- The root `.gitignore` is already configured for those files and folders.
-- The frontend reads shop validation settings from the backend `GET /api/attendance/shop-info` endpoint so both sides stay in sync.
+## 🌐 Environment Variables
 
-## First Push to GitHub
+### Frontend (.env)
 
-```bash
-git init
-git remote add origin https://github.com/Mohd-Arshad77/Web-Based-Attendence-System.git
-git add .
-git commit -m "Initial project backup"
-git branch -M main
-git push -u origin main
-```
+* Local:
+  VITE_API_URL=http://localhost:5000/api
 
-## API Documentation
+* Production:
+  VITE_API_URL=https://web-based-attendence-system.onrender.com/api
 
-### `POST /api/attendance/checkin`
+---
 
-Form data fields:
+## 📄 Documentation
 
-- `userId`
-- `userName`
-- `latitude`
-- `longitude`
-- `timestamp`
-- `image`
+* Database Schema → ./DATABASE_SCHEMA.md
+* API Documentation → ./API_DOCUMENTATION.md
 
-### `POST /api/attendance/checkout`
+---
 
-Form data fields:
 
-- `userId`
-- `userName`
-- `latitude`
-- `longitude`
-- `timestamp`
-- `image`
 
-### `GET /api/attendance/user/:userId`
+## 🔐 Git Safety Notes
 
-Returns all attendance records for a user.
+* Do not commit `.env` files
+* Ignore:
 
-### `GET /api/attendance/shop-info`
+  * node_modules
+  * dist
+  * backend/uploads
 
-Returns the shop coordinates and max allowed distance.
+---
 
-## Database Schema
+## 🌐 Deployment Notes
 
-See [docs/database-schema.md](/d:/Web-based%20Attendance%20System/docs/database-schema.md)
+* Set `MONGODB_URI` in Render
+* Set `CLIENT_URL` to your frontend URL
+* Use environment variables for production
 
-## Extra Notes for Submission
+---
 
-- Test the app from a browser on a phone or laptop with camera and GPS enabled.
-- Add screenshots or a short demo video before submission.
-- If using MongoDB Atlas, whitelist your IP and update `MONGODB_URI`.
-- Uploaded selfie images are stored inside `backend/uploads/`.
+##  Key Highlights
 
-## Render Deployment Notes
+* GPS + Selfie based secure attendance
+* Real-time distance validation
+* Clean and scalable architecture
 
-- Set `MONGODB_URI` in Render to your MongoDB Atlas connection string.
-- Set `CLIENT_URL` in Render to your deployed frontend URL so CORS allows browser requests.
-- Keep `backend/.env` local only; do not commit Atlas credentials to GitHub.
+---
+
+##  Author
+
+Mohammed Arshad
