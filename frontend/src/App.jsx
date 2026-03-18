@@ -9,11 +9,11 @@ import {
 } from "./services/api.js";
 
 const DEFAULT_SHOP_LOCATION = {
-  latitude: 11.1215,
-  longitude: 76.12,
+  latitude: 9.9312,
+  longitude: 76.2673,
 };
 
-const DEFAULT_MAX_DISTANCE_METERS = 1000;
+const DEFAULT_MAX_DISTANCE_METERS = 100;
 const ATTENDANCE_PERMISSION_MESSAGE =
   "Please allow location and camera permissions to mark attendance.";
 const getTodayDateString = () => new Date().toISOString().split("T")[0];
@@ -358,7 +358,7 @@ function App() {
     }
 
     if (!isNearShop) {
-      showErrorToast("You are not near the shop. Please move closer to check.", "attendance-validation");
+      showErrorToast("You are not near the shop. Please move closer to mark attendance.", "attendance-validation");
       return false;
     }
 

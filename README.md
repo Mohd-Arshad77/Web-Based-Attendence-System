@@ -14,9 +14,9 @@ A MERN-based attendance system that allows employees to check in and check out o
 
 ## Shop Validation Settings
 
-- Latitude: `11.1215`
-- Longitude: `76.12`
-- Max allowed distance: `1000 meters`
+- Latitude: `9.9312`
+- Longitude: `76.2673`
+- Max allowed distance: `100 meters`
 
 ## Tech Stack
 

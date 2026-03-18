@@ -1,6 +1,6 @@
 export const SHOP_LOCATION = {
-  latitude: 11.1215,
-  longitude: 76.12,
+  latitude: 9.9312,
+  longitude: 76.2673,
 };
 
-export const MAX_DISTANCE_METERS = 1000;
+export const MAX_DISTANCE_METERS = 100;

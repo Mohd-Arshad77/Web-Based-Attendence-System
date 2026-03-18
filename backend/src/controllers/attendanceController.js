@@ -45,7 +45,7 @@ const validateDistance = (coordinates) => {
   const distance = calculateDistanceInMeters(coordinates, SHOP_LOCATION);
 
   if (distance > MAX_DISTANCE_METERS) {
-    const error = new Error("You are not near the shop. Please move closer to check.");
+    const error = new Error("You are not near the shop. Please move closer to mark attendance.");
     error.statusCode = 400;
     throw error;
   }

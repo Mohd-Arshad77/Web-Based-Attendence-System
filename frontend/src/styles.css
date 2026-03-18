@@ -235,7 +235,7 @@ input {
 
 .hero-heading-group {
   display: grid;
-  gap: 0.5rem;
+  gap: 2rem;
   justify-items: center;
 }
 
@@ -255,7 +255,7 @@ h2 {
 h1 {
   font-family: "Orbitron", sans-serif;
   font-size: clamp(2.2rem, 4.4vw, 3.7rem);
-  line-height: 1.02;
+  line-height: 1.2;
   letter-spacing: -0.02em;
   font-weight: 800;
   color: #f3fbff;
@@ -949,6 +949,7 @@ td {
     margin-bottom: 0.75rem;
     padding-bottom: 0;
     border-bottom: 0;
+    justify-content: center;
   }
 
   .hero-title-row {
